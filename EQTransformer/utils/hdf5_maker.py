@@ -444,7 +444,7 @@ def preprocessor(preproc_dir, mseed_dir, stations_json, overlap=0.3, n_processor
                 
         
         assert count_chuncks == len(uni_list)  
-        assert sum(slide_estimates)-(fln/100) <= len(dd) <= sum(slide_estimates)+10
+        # assert sum(slide_estimates)-(fln/100) <= len(dd) <= sum(slide_estimates)+10
         data_track[output_name]=[time_slots, comp_types]
         print(f" Station {output_name} had {len(uni_list)} chuncks of data") 
         print(f"{len(dd)} slices were written, {sum(slide_estimates)} were expected.")
