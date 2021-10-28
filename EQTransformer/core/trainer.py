@@ -4,15 +4,17 @@
 Created on Wed Apr 25 17:44:14 2018
 
 @author: mostafamousavi
-last update: 06/25/2020
+last update: 05/27/2021
 
 """
 
 from __future__ import print_function
-import keras
-from keras import backend as K
-from keras.callbacks import ModelCheckpoint, LearningRateScheduler, ReduceLROnPlateau, EarlyStopping
-from keras.layers import Input
+import os
+os.environ['KERAS_BACKEND']='tensorflow'
+from tensorflow import keras
+from tensorflow.keras import backend as K
+from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler, ReduceLROnPlateau, EarlyStopping
+from tensorflow.keras.layers import Input
 import tensorflow as tf
 import matplotlib
 matplotlib.use('agg')
@@ -21,7 +23,7 @@ import numpy as np
 import pandas as pd
 import h5py
 import time
-import os
+
 import shutil
 import multiprocessing
 from .EqT_utils import DataGenerator, _lr_schedule, cred2, PreLoadGenerator, data_reader
@@ -49,6 +51,7 @@ def trainer(input_hdf5=None,
             add_noise_r=0.3, 
             drop_channel_r=0.5,
             add_gap_r=0.2,
+            coda_ratio=0.4,
             scale_amplitude_r=None,
             pre_emphasis=False,                
             loss_weights=[0.05, 0.40, 0.55],
@@ -59,8 +62,6 @@ def trainer(input_hdf5=None,
             epochs=200, 
             monitor='val_loss',
             patience=12,
-            multi_gpu=False,
-            number_of_gpus=4,
             gpuid=None,
             gpu_limit=None,
             use_multiprocessing=True):
@@ -123,7 +124,10 @@ def trainer(input_hdf5=None,
         Rate of augmentation for randomly dropping one of the channels.
 
     add_gap_r: float, defaults=0.2 
-        Add an interval with zeros into the waveform representing filled gaps.       
+        Add an interval with zeros into the waveform representing filled gaps. 
+
+    coda_ratio: float, defaults=0.4
+        % of S-P time to extend event/coda envelope past S pick.
         
     scale_amplitude_r: float, defaults=None
         Rate of augmentation for randomly scaling the trace. 
@@ -154,12 +158,6 @@ def trainer(input_hdf5=None,
            
     patience: int, default=12
         The number of epochs without any improvement in the monitoring measure to automatically stop the training.          
-        
-    multi_gpu: bool, default=False
-        If True, multiple GPUs will be used for the training. 
-           
-    number_of_gpus: int, default=4
-        Number of GPUs uses for multi-GPU training.
            
     gpuid: int, default=None
         Id of GPU used for the prediction. If using CPU set to None. 
@@ -214,6 +212,7 @@ def trainer(input_hdf5=None,
     "shift_event_r": shift_event_r,
     "add_noise_r": add_noise_r,
     "add_gap_r": add_gap_r,
+    "coda_ratio": coda_ratio,
     "drop_channel_r": drop_channel_r,
     "scale_amplitude_r": scale_amplitude_r,
     "pre_emphasis": pre_emphasis,
@@ -224,9 +223,7 @@ def trainer(input_hdf5=None,
     "batch_size": batch_size,
     "epochs": epochs,
     "monitor": monitor,
-    "patience": patience,           
-    "multi_gpu": multi_gpu,
-    "number_of_gpus": number_of_gpus,           
+    "patience": patience,                    
     "gpuid": gpuid,
     "gpu_limit": gpu_limit,
     "use_multiprocessing": use_multiprocessing
@@ -284,7 +281,7 @@ def trainer(input_hdf5=None,
             config.gpu_options.per_process_gpu_memory_fraction = float(args['gpu_limit']) 
             K.tensorflow_backend.set_session(tf.Session(config=config))
             
-        start_training = time.time()                  
+        start_training = time.time()
             
         if args['mode'] == 'generator': 
             
@@ -294,15 +291,16 @@ def trainer(input_hdf5=None,
                               'n_channels': args['input_dimention'][-1],
                               'shuffle': args['shuffle'],  
                               'norm_mode': args['normalization_mode'],
-                              'label_type': args['label_type'],                          
+                              'label_type': args['label_type'],
                               'augmentation': args['augmentation'],
-                              'add_event_r': args['add_event_r'], 
-                              'add_gap_r': args['add_gap_r'],  
-                              'shift_event_r': args['shift_event_r'],                            
-                              'add_noise_r': args['add_noise_r'], 
+                              'add_event_r': args['add_event_r'],
+                              'add_gap_r': args['add_gap_r'],
+                              'coda_ratio': args['coda_ratio'],
+                              'shift_event_r': args['shift_event_r'],    
+                              'add_noise_r': args['add_noise_r'],
                               'drop_channe_r': args['drop_channel_r'],
                               'scale_amplitude_r': args['scale_amplitude_r'],
-                              'pre_emphasis': args['pre_emphasis']}    
+                              'pre_emphasis': args['pre_emphasis']}
                         
             params_validation = {'file_name': str(args['input_hdf5']),  
                                  'dim': args['input_dimention'][0],
@@ -332,7 +330,8 @@ def trainer(input_hdf5=None,
                                        norm_mode=args['normalization_mode'],
                                        augmentation=args['augmentation'],
                                        add_event_r=args['add_event_r'],
-                                       add_gap_r=args['add_gap_r'], 
+                                       add_gap_r=args['add_gap_r'],
+                                       coda_ratio=args['coda_ratio'],
                                        shift_event_r=args['shift_event_r'], 
                                        add_noise_r=args['add_noise_r'],  
                                        drop_channe_r=args['drop_channel_r'],
@@ -423,9 +422,7 @@ def _build_model(args):
               loss_weights=args['loss_weights'],
               loss_types=args['loss_types'],
               kernel_regularizer=keras.regularizers.l2(1e-6),
-              bias_regularizer=keras.regularizers.l1(1e-4),
-              multi_gpu=args['multi_gpu'], 
-              gpu_number=args['number_of_gpus'],  
+              bias_regularizer=keras.regularizers.l1(1e-4)
                )(inp)  
     model.summary()  
     return model  
@@ -571,7 +568,8 @@ def _pre_loading(args, training, validation):
                        'label_type': args['label_type'],
                        'augmentation': args['augmentation'],
                        'add_event_r': args['add_event_r'], 
-                       'add_gap_r': args['add_gap_r'],                         
+                       'add_gap_r': args['add_gap_r'],
+                       'coda_ratio': args['coda_ratio'],
                        'shift_event_r': args['shift_event_r'],  
                        'add_noise_r': args['add_noise_r'], 
                        'drop_channe_r': args['drop_channel_r'],
@@ -721,8 +719,6 @@ def _document_training(history, model, start_training, end_training, save_dir, s
         the_file.write('total number of validation: '+str(validation_size)+'\n')
         the_file.write('monitor: '+str(args['monitor'])+'\n')
         the_file.write('patience: '+str(args['patience'])+'\n') 
-        the_file.write('multi_gpu: '+str(args['multi_gpu'])+'\n')
-        the_file.write('number_of_gpus: '+str(args['number_of_gpus'])+'\n') 
         the_file.write('gpuid: '+str(args['gpuid'])+'\n')
         the_file.write('gpu_limit: '+str(args['gpu_limit'])+'\n')             
         the_file.write('use_multiprocessing: '+str(args['use_multiprocessing'])+'\n')  
@@ -744,6 +740,8 @@ def _document_training(history, model, start_training, end_training, save_dir, s
         the_file.write('add_event_r: '+str(args['add_event_r'])+'\n')
         the_file.write('add_noise_r: '+str(args['add_noise_r'])+'\n')   
         the_file.write('shift_event_r: '+str(args['shift_event_r'])+'\n')                            
-        the_file.write('drop_channel_r: '+str(args['drop_channel_r'])+'\n')            
+        the_file.write('drop_channel_r: '+str(args['drop_channel_r'])+'\n')
+        the_file.write('add_gap_r: '+str(args['add_gap_r'])+'\n')
+        the_file.write('coda_ratio: '+str(args['coda_ratio'])+'\n')
         the_file.write('scale_amplitude_r: '+str(args['scale_amplitude_r'])+'\n')            
         the_file.write('pre_emphasis: '+str(args['pre_emphasis'])+'\n')

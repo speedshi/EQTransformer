@@ -5,15 +5,17 @@ Created on Sun Jun 21 21:55:54 2020
 
 @author: mostafamousavi
 
-last update: 01/29/2021
+last update: 05/27/2021
 
 """
 
 from __future__ import print_function
 from __future__ import division
-from keras import backend as K
-from keras.models import load_model
-from keras.optimizers import Adam
+import os
+os.environ['KERAS_BACKEND']='tensorflow'
+from tensorflow.keras import backend as K
+from tensorflow.keras.models import load_model
+from tensorflow.keras.optimizers import Adam
 import tensorflow as tf
 import matplotlib
 matplotlib.use('agg')
@@ -22,10 +24,9 @@ import numpy as np
 import pandas as pd
 import math
 import csv
-import keras
+from tensorflow import keras
 import time
 from os import listdir
-import os
 import platform
 import shutil
 from tqdm import tqdm
@@ -54,7 +55,7 @@ try:
         if li == 8:
             EQT_VERSION = l.split('"')[1]
 except Exception:
-    EQT_VERSION = "0.1.59"
+    EQT_VERSION = "0.1.61"
     
 
 def mseed_predictor(input_dir='downloads_mseeds',
@@ -195,13 +196,9 @@ def mseed_predictor(input_dir='downloads_mseeds',
         yield
         sys.stdout = save_stdout
     
- 
-    # print('============================================================================')
-    # print('Running EqTransformer ', str(EQT_VERSION))
     eqt_logger = logging.getLogger("EQTransformer")
     eqt_logger.info(f"Running EqTransformer  {EQT_VERSION}")
             
-    # print(' *** Loading the model ...', flush=True)     
     eqt_logger.info(f"*** Loading the model ...")
     model = load_model(args['input_model'], 
                        custom_objects={'SeqSelfAttention': SeqSelfAttention, 
@@ -213,19 +210,14 @@ def mseed_predictor(input_dir='downloads_mseeds',
                   loss_weights = args['loss_weights'],           
                   optimizer = Adam(lr = 0.001),
                   metrics = [f1])
-    # print('*** Loading is complete!', flush=True)  
     eqt_logger.info(f"*** Loading is complete!")
-
 
     out_dir = os.path.join(os.getcwd(), str(args['output_dir']))
     if os.path.isdir(out_dir):
-        # print('============================================================================')        
-        # print(f' *** {out_dir} already exists!')
         eqt_logger.info(f"*** {out_dir} already exists!")
         if overwrite == True:
             inp = "y"
             eqt_logger.info(f"Overwriting your previous results")
-            # print("Overwriting your previous results")
         else:
             inp = input(" --> Type (Yes or y) to create a new empty directory! This will erase your previous results so make a copy if you want them.")
         if inp.lower() == "yes" or inp.lower() == "y":
@@ -240,12 +232,10 @@ def mseed_predictor(input_dir='downloads_mseeds',
     else:     
         station_list = [ev.split(".")[0] for ev in listdir(args['input_dir']) if ev.split("/")[-1] != ".DS_Store"];
         
-
     station_list = sorted(set(station_list))
     
     data_track = dict()
 
-    # print(f"######### There are files for {len(station_list)} stations in {args['input_dir']} directory. #########", flush=True)
     eqt_logger.info(f"There are files for {len(station_list)} stations in {args['input_dir']} directory.")
     for ct, st in enumerate(station_list):
     
@@ -281,9 +271,7 @@ def mseed_predictor(input_dir='downloads_mseeds',
                                  's_snr'
                                      ])  
         csvPr_gen.flush()
-        # print(f'========= Started working on {st}, {ct+1} out of {len(station_list)} ...', flush=True)
-        eqt_logger.info(f"Started working on {st}, {ct+1} out of {len(station_list)} ...")
-        
+        eqt_logger.info(f"Started working on {st}, {ct+1} out of {len(station_list)} ...")       
 
         start_Predicting = time.time()       
         if platform.system() == 'Windows':
@@ -297,7 +285,6 @@ def mseed_predictor(input_dir='downloads_mseeds',
           
         time_slots, comp_types = [], []
         
-        # print('============ Station {} has {} chunks of data.'.format(st, len(uni_list)), flush=True)      
         for _, month in enumerate(uni_list):
             eqt_logger.info(f"{month}")
             matching = [s for s in file_list if month in s]
