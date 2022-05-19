@@ -979,7 +979,7 @@ def _plotter_prediction(data, evi, args, save_figs, yh1, yh2, yh3, yh1_std, yh2_
         ax = fig.add_subplot(spec5[1, 0])         
         f, t, Pxx = signal.stft(data[:, 0], fs=100, nperseg=80)
         Pxx = np.abs(Pxx)                       
-        plt.pcolormesh(t, f, Pxx, alpha=None, cmap='hot', shading=None, antialiased=True)
+        plt.pcolormesh(t, f, Pxx, alpha=None, cmap='hot', shading='flat', antialiased=True)
         plt.ylim(0, 40)
         plt.text(1, 1, 'STFT', fontdict=font0)
         plt.ylabel('Hz', fontsize=12)
@@ -1019,7 +1019,7 @@ def _plotter_prediction(data, evi, args, save_figs, yh1, yh2, yh3, yh1_std, yh2_
         ax = fig.add_subplot(spec5[3, 0]) 
         f, t, Pxx = signal.stft(data[:, 1], fs=100, nperseg=80)
         Pxx = np.abs(Pxx)                       
-        plt.pcolormesh(t, f, Pxx, alpha=None, cmap='hot', shading=None, antialiased=True)
+        plt.pcolormesh(t, f, Pxx, alpha=None, cmap='hot', shading='flat', antialiased=True)
         plt.ylim(0, 40)
         plt.text(1, 1, 'STFT', fontdict=font0)
         plt.ylabel('Hz', fontsize=12)
@@ -1058,7 +1058,7 @@ def _plotter_prediction(data, evi, args, save_figs, yh1, yh2, yh3, yh1_std, yh2_
         ax = fig.add_subplot(spec5[5, 0])         
         f, t, Pxx = signal.stft(data[:, 2], fs=100, nperseg=80)
         Pxx = np.abs(Pxx)                       
-        plt.pcolormesh(t, f, Pxx, alpha=None, cmap='hot', shading=None, antialiased=True)
+        plt.pcolormesh(t, f, Pxx, alpha=None, cmap='hot', shading='flat', antialiased=True)
         plt.ylim(0, 40)
         plt.text(1, 1, 'STFT', fontdict=font0)
         plt.ylabel('Hz', fontsize=12)
@@ -1134,7 +1134,7 @@ def _plotter_prediction(data, evi, args, save_figs, yh1, yh2, yh3, yh1_std, yh2_
             
         plt.xlim(0, 6000)
         fig.tight_layout()
-        fig.savefig(os.path.join(save_figs, str(evi).replace(':', '-')+'.png'), dpi=200) 
+        fig.savefig(os.path.join(save_figs, str(evi)+'.png'), dpi=200) 
         plt.close(fig)
         plt.clf()
     
@@ -1326,7 +1326,7 @@ def _plotter_prediction(data, evi, args, save_figs, yh1, yh2, yh3, yh1_std, yh2_
                 plt.text(7000, 0.1, str(EQT_VERSION), fontdict=font)
             
         fig.tight_layout()
-        fig.savefig(os.path.join(save_figs, str(evi).replace(':', '-')+'.png')) 
+        fig.savefig(os.path.join(save_figs, str(evi)+'.png')) 
         plt.close(fig)
         plt.clf()
         
