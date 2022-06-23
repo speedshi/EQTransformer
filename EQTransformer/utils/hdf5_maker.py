@@ -213,11 +213,17 @@ def preprocessor(preproc_dir, mseed_dir, stations_json, overlap=0.3, n_processor
                     try: 
                         npz_data[:,0] = w[chanL.index('E')].data[:6000]
                     except Exception:
-                        npz_data[:,0] = w[chanL.index('1')].data[:6000]
+                        try:
+                            npz_data[:,0] = w[chanL.index('1')].data[:6000]  # main guess
+                        except Exception:
+                            npz_data[:,0] = w[chanL.index('2')].data[:6000]
                     try: 
                         npz_data[:,1] = w[chanL.index('N')].data[:6000]
                     except Exception:
-                        npz_data[:,1] = w[chanL.index('2')].data[:6000]                        
+                        try:
+                            npz_data[:,1] = w[chanL.index('3')].data[:6000] 
+                        except Exception:
+                            npz_data[:,1] = w[chanL.index('2')].data[:6000]  # main guess
                                      
                     tr_name = st1[0].stats.station+'_'+st1[0].stats.network+'_'+st1[0].stats.channel[:2]+'_'+str(start_time)
                     HDF = h5py.File(os.path.join(save_dir,output_name+'.hdf5'), 'r')
