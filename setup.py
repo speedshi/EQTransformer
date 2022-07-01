@@ -11,7 +11,7 @@ setup(
     description="A python package for making and using attentive deep-learning models for earthquake signal detection and phase picking.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/smousavi05/EQTransformer",
+    url="https://github.com/speedshi/EQTransformer",
     license="MIT",
     packages=find_packages(),
     keywords='Seismology, Earthquakes Detection, P&S Picking, Deep Learning, Attention Mechanism',
