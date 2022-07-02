@@ -33,7 +33,7 @@ import faulthandler; faulthandler.enable()
 
 
 
-def preprocessor(preproc_dir, mseed_dir, stations_json, overlap=0.3, n_processor=None):
+def preprocessor(preproc_dir, mseed_dir, stations_json, output_dir=None, overlap=0.3, n_processor=None):
     
     
     """
@@ -49,7 +49,11 @@ def preprocessor(preproc_dir, mseed_dir, stations_json, overlap=0.3, n_processor
         Path of the directory where the mseed files are located. 
 
     stations_json: str
-        Path to a JSON file containing station information.        
+        Path to a JSON file containing station information.  
+        
+    output_dir: str, default is None
+        Path of the directory where hdf5 data are stored.
+        If None, use the default saving path: mseed_dir+'_processed_hdfs'
         
     overlap: float, default=0.3
         If set, detection, and picking are performed in overlapping windows.
@@ -76,7 +80,11 @@ def preprocessor(preproc_dir, mseed_dir, stations_json, overlap=0.3, n_processor
     json_file = open(stations_json)
     stations_ = json.load(json_file)
     
-    save_dir = os.path.join(os.getcwd(), str(mseed_dir)+'_processed_hdfs')
+    if output_dir is None:
+        save_dir = os.path.join(os.getcwd(), str(mseed_dir)+'_processed_hdfs')
+    else:
+        save_dir = output_dir
+    
     if os.path.isdir(save_dir):
         print(f' *** " {save_dir} " directory already exists!')
         inp = input(" * --> Do you want to creat a new empty folder? Type (Yes or y) ")
